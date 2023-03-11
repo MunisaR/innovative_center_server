@@ -2,9 +2,17 @@ const express = require("express");
 const jsonwebtoken = require("jsonwebtoken");
 const bodyParser = require("body-parser");
 const port = 8000;
-
+const twilio = require("twilio");
+const client = twilio(
+  "AC823ebaadd99895a42dc0d94b94fa11bf",
+  "6c95bfe9fec23dfb67cb9fff06285783"
+);
 const cors = require("cors");
-const { UserSchema, ExamSchema } = require("./database/connection");
+const {
+  UserSchema,
+  ExamSchema,
+  IeltsUserSchema,
+} = require("./database/connection");
 const app = express();
 app.use(cors("*"));
 app.use(bodyParser.json());
@@ -13,20 +21,48 @@ app.use(bodyParser.json());
 app.post("/api/user", async (req, res) => {
   try {
     const user = await UserSchema.create(req.body);
+    client.messages
+      .create({
+        to: "+998905850789", // Replace with the recipient's phone number
+        from: "900174290", // Replace with your Twilio number
+        body: "Hello from Twilio and MrHumble!",
+      })
+      .then((message) => console.log(message.sid));
     res.json({ user: user });
   } catch (error) {
     console.log(error);
+    res.status(400).json({ error: error });
   }
 });
 
-app.get("/api/users", async (req, res) => {
-  const users = await UserSchema.find({});
+app.post("/api/ielts_user", async (req, res) => {
+  try {
+    const ielts_user = await IeltsUserSchema.create(req.body);
+    res.json({ ielts_user: ielts_user });
+  } catch (error) {
+    console.log(error);
+    res.status(400).json({ error: error });
+  }
+});
+
+app.get("/api/allUsers", async (req, res) => {
+  const mix = await UserSchema.find({});
+  const ielts = await IeltsUserSchema.find({});
+  const users = [...mix, ...ielts];
+
   res.json({ users: users });
+});
+
+app.get("/api/allExams", async (req, res) => {
+  const exams = await ExamSchema.find({});
+  console.log(exams);
+  res.json({ exams });
 });
 
 ///////////////// CRUD for Exam /////////////////
 app.post("/api/exam", async (req, res) => {
   try {
+    console.log(req.body);
     const exam = await ExamSchema.create(req.body);
     res.json({ exam: exam });
   } catch (error) {
@@ -39,12 +75,18 @@ app.get("/api/exams", async (req, res) => {
   res.json({ exams: exams });
 });
 
-app.patch("/api/exams/:id", async (req, res) => {
+app.put("/api/exams/edit", async (req, res) => {
   try {
-    const id = req.params.id;
-    ExamSchema.findByIdAndUpdate(id, req.body, {
-      new: true,
-    });
+    console.log(req.body);
+    const _id = req.body._id;
+    const exam = req.body.exam;
+    ExamSchema.replaceOne(
+      { _id: _id },
+      exam,
+      // If `new` isn't true, `findOneAndUpdate()` will return the
+      // document as it was _before_ it was updated.
+      { new: true }
+    );
   } catch (error) {
     console.log(error);
   }
