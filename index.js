@@ -3,10 +3,7 @@ const jsonwebtoken = require("jsonwebtoken");
 const bodyParser = require("body-parser");
 const port = 8000;
 const twilio = require("twilio");
-const client = twilio(
-  "AC823ebaadd99895a42dc0d94b94fa11bf",
-  "6c95bfe9fec23dfb67cb9fff06285783"
-);
+
 const cors = require("cors");
 const {
   UserSchema,
